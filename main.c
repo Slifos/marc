@@ -2,6 +2,7 @@
 #include "map.h"
 #include "loc.h"
 #include "moves.h"
+#include "phase.h"
 int main() {
     t_map map;
 
@@ -32,13 +33,15 @@ int main() {
         }
         printf("\n");
     }
-    displayMap(map);
-
-    t_localisation robot = loc_init(0,0,EAST);
-
+    t_chance chance;
+    chance.F_10 = 22; chance.F_20 = 15; chance.B_10 = 7; chance.F_30 = 7; chance.T_LEFT = 21; chance.T_RIGHT = 21; chance.U_TURN = 7;
+    t_localisation robot = loc_init(3,3,EAST);
     updateLocalisation(&robot,F_20);
     printf("\n");
     displayMap(map);
-
+    printf("\n");
+    phase(robot,chance,map);
+    printf("\n");
+    printf("finito");
     return 0;
 }

@@ -13,4 +13,6 @@ add_executable(untitled1 main.c
         queue.c
         queue.h
         stack.c
-        stack.h)
+        stack.h
+        phase.c
+        phase.h)
