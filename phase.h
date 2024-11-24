@@ -24,11 +24,13 @@ typedef struct s_chance{
 }t_chance;
 
 
-int* filtrerListe(int *, int , int *, int , int*);
+int* getMoves(int *,int,int);
 t_move move_num(int );
 Node* create_node(int , int );
-void build_tree(Node* , t_map , t_localisation , int*, int*);
+void build_tree(Node* , t_map , t_localisation , int*,int);
 void phase(t_localisation , t_chance , t_map );
 int num_move (int , t_chance * );
-
+int* base_moves(t_chance chance);
+int* best_way(Node* node);
+int verif_collision(t_localisation);
 #endif //UNTITLED1_PHASE_H

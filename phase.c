@@ -1,6 +1,4 @@
-//
-// Created by gaspa on 17/11/2024.
-//
+
 #include <stdio.h>
 #include "loc.h"
 #include "moves.h"
@@ -10,7 +8,7 @@
 #include "math.h"
 #include "map.h"
 
-int* filtrerListe(int *source, int taille, int *positionsASupprimer, int tailleSuppr, int*destination) {
+/*int* filtrerListe(int *source, int taille, int *positionsASupprimer, int tailleSuppr, int*destination) {
     int k = 0; // Index pour la nouvelle liste
     for (int i = 0; i < taille; i++) {
         // Vérifier si `i` est dans la liste des positions à supprimer
@@ -26,13 +24,28 @@ int* filtrerListe(int *source, int taille, int *positionsASupprimer, int tailleS
         }
     }
     return destination;
+}*/
+
+int* getMoves(int *moves,int index,int num_children) {
+    //renvoie la liste des mouvements possibles aux nouveaux noeuds
+
+    int* new_moves = malloc(num_children*sizeof(int*));
+    for(int i=0;i<index;i++) {
+        new_moves[i]=moves[i];
+        printf("\n%d",new_moves[i]);
+    }
+    for(int i=index;i<num_children-1;i++){new_moves[i]=moves[i+1];printf("\n%d",new_moves[i]);}
+    printf("\n");
+    return new_moves;
+
 }
-void print_tree(Node* node, int level) {
+
+void print_tree(Node* node, int level){
     // Affiche l'indentation et la valeur du nœud
     for (int i = 0; i < level; i++) {
         printf("  ");
     }
-    printf("Node(value=%d, children=%d)\n", node->value, node->num_children);
+
 
     // Afficher les enfants
     for (int i = 0; i < node->num_children; i++) {
@@ -72,6 +85,7 @@ int num_move (int i, t_chance * chance){
         return 8;
     }
 }
+
 t_move move_num(int i){
     switch (i) {
         case 1 : return F_10;
@@ -83,75 +97,104 @@ t_move move_num(int i){
         case 7 : return U_TURN;
     }
 }
-
 // Fonction pour créer un nœud
 Node* create_node(int value, int num_children) {
-    Node* node = malloc(sizeof(Node));
+
+    Node* node = (Node*)malloc(sizeof(Node));
+
     if (node == NULL) {
         return NULL;
+
     }
     node->value = value;
     node->num_children = num_children;
 
     // Allouer de la mémoire pour les enfants si le nœud a des enfants
     if (num_children > 4) {
-        node->children = malloc(num_children * sizeof(Node*));
+
+        node->children = malloc(num_children*sizeof(Node*));
+
         if (node->children == NULL) {
             return NULL;
+
         }
     } else {
-        node->children = NULL; // Pas d'enfants pour ce nœud
+        node->children = NULL;
+        // Pas d'enfants pour ce nœud
     }
 
     return node;
 }
 
 // Fonction récursive pour construire l'arbre
-void build_tree(Node* node, t_map map, t_localisation loc, int*moves, int*chemin) {
-    if (node->num_children < 5) {
+void build_tree(Node* node, t_map map, t_localisation loc, int*moves,int reg) {
+    int new_reg=reg;
+
+    if (node->num_children < 5+reg) {
         node->children = NULL;
         return; // Pas d'enfants à créer
     }
-    int listemoves[((sizeof moves)/(sizeof(moves[0]))-(sizeof chemin)/(sizeof(chemin[0])))];
-    filtrerListe(moves,(sizeof moves)/(sizeof(moves[0])),chemin,(sizeof chemin)/(sizeof(chemin[0])),listemoves);
 
-    for (int i = 0; i < node->num_children; i++){ // Créer un enfant avec un niveau inférieur
-        int level = 8 - ((sizeof moves)/(sizeof(moves[0])-(sizeof chemin)/(sizeof(chemin[0]))));
-        //printf("\n %d %d 8",(sizeof moves),sizeof chemin);
-        int a = 0;
-        chemin[level] = i;
-        int *new_chemin = chemin;
-        t_localisation new_loc=loc;
-        t_localisation essai = move(loc, move_num(listemoves[i]));
-        if (essai.pos.x < 7 && essai.pos.x >-1 && essai.pos.y<6 && essai.pos.y>-1) {
-            new_loc = move(loc, move_num(listemoves[i]));
+    for (int i = 0; i < node->num_children; i++){
+        // Créer un enfant avec un niveau inférieur
+        int* new_moves = getMoves(moves,i,node->num_children);
+        t_localisation new_loc = move(loc, move_num(new_moves[i]));
+
+        int collision = verif_collision(new_loc);
+        //printf("\nbefore collision");
+        if (collision){
+
+
+            if (map.costs[loc.pos.x][loc.pos.y]==4){
+                new_reg=1;
+            }
+            //printf("\ncollision1");
+            node->children[i] = create_node(node->value = map.costs[loc.pos.x][loc.pos.y], node->num_children - 1);
+            build_tree(node->children[i],map, loc, new_moves,new_reg);
         }
-        node->children[i] = create_node(node->value = map.costs[new_loc.pos.x][new_loc.pos.y], node->num_children - 1);
-        build_tree(node->children[i],map, new_loc, moves, new_chemin); // Construire l'arbre pour cet enfant
+        else {
+            //printf("\nbefore collision2");
+            if (map.costs[new_loc.pos.x][new_loc.pos.y]==4) {
+                new_reg=1;
+            }
+
+            node->children[i] = create_node(node->value = map.costs[new_loc.pos.x][new_loc.pos.y], node->num_children - 1);
+            //printf("\ncollision2");
+            build_tree(node->children[i],map, new_loc, new_moves,new_reg);
+
+        }
+        /*printf("\ncollision");
+        printf("map cost-> %d",map.costs[new_loc.pos.x][new_loc.pos.y]);
+
+        printf("\nreg");
+        node->value = map.costs[new_loc.pos.x][new_loc.pos.y];
+        printf("\nbefore node");
+
+        //printf("\nnum child %d ",node->num_children);
+        build_tree(node->children[i],map, new_loc, moves,new_reg);*/// Construire l'arbre pour cet enfant
     }
 }
 
 void phase(t_localisation loc, t_chance chance, t_map map){
     t_localisation loc2 = loc;
     srand(time(NULL));
-    int total, i, b,c,d,e,f;
-    int moves[9], chemin[5] = {-1,-1,-1,-1,-1};
-    for (i=0; i < 9 ;i++){
-        total = chance.U_TURN + chance.T_RIGHT + chance.T_LEFT + chance.B_10 + chance.F_10 +chance.F_20 +chance.F_30;
-        int p = floor(((rand()%(101)))*((float)total/100));
-        printf("%d ",p);
-        moves[i] = num_move(p,&chance);
-        printf("%d & %d \n",total ,moves[i]);
-    }
-    int a=0;
-    printf("\n%d",chemin[0]);
+    //int chemin[5] = {-1,-1,-1,-1,-1};
+    int* moves = base_moves(chance);
+
+
     Node *node = create_node(-1, 9);
     printf("\n node value : %d",node->value);
-    build_tree(node,map,loc, moves,&chemin);
+    build_tree(node,map,loc, moves,0);
     printf("\n node value : %d",node->value);
-    int min = 1000;
-    //print_tree(node, 0);
-    int cheminfinal[5];
+
+    best_way(node);
+}
+
+int* best_way(Node* node) {
+    //cherche le chemin avec le coût le moins élevé possible à travers l'arbre
+    //pour trouver le meilleur chemin à parcourir
+    int b,c,d,e,f,min = 100000;
+    int* cheminfinal = malloc(5*sizeof(int));
     for (b=0;b<9;b++){
         for (c=0;c<8;c++){
             for (d=0;d<7;d++){
@@ -161,18 +204,44 @@ void phase(t_localisation loc, t_chance chance, t_map map){
                         if((node->children[b]->value + node->children[b]->children[c]->value + node->children[b]->children[c]->children[d]->value + node->children[b]->children[c]->children[d]->children[e]->value + node->children[b]->children[c]->children[d]->children[e]->children[f]->value)<min){
                             min = node->children[b]->value + node->children[b]->children[c]->value + node->children[b]->children[c]->children[d]->value + node->children[b]->children[c]->children[d]->children[e]->value + node->children[b]->children[c]->children[d]->children[e]->children[f]->value;
                             printf("\nmin : %d", min);
-                            printf("\n%d %d %d %d %d",b,c,d,e,f);
-                            cheminfinal[0] = b;cheminfinal[1] = c;cheminfinal[2] = d;cheminfinal[3] = e;cheminfinal[4] = f;
-                            printf("\n____________%d %d %d %d %d",node->children[b]->value,node->children[b]->children[c]->value,node->children[b]->children[c]->children[d]->value,node->children[b]->children[c]->children[d]->children[e]->value,node->children[b]->children[c]->children[d]->children[e]->children[f]->value);
-                            //cheminfinal[0] = node->children[b]->value;
-                            //cheminfinal[1] = node->children[b]->children[c]->value;
-                            //cheminfinal[2] = node->children[b]->children[c]->children[d]->value;
-                            //cheminfinal[3] = node->children[b]->children[c]->children[d]->children[e]->value;
-                            //cheminfinal[4] = node->children[b]->children[c]->children[d]->children[e]->children[f]->value;
-                       }
+                            printf("\nchemin : %d %d %d %d %d",b,c,d,e,f);
+                            cheminfinal[0] = b;
+                            cheminfinal[1] = c;
+                            cheminfinal[2] = d;
+                            cheminfinal[3] = e;
+                            cheminfinal[4] = f;
+
+                            printf("\nChemin en prix : %d %d %d %d %d\n",node->children[b]->value,node->children[b]->children[c]->value,node->children[b]->children[c]->children[d]->value,node->children[b]->children[c]->children[d]->children[e]->value,node->children[b]->children[c]->children[d]->children[e]->children[f]->value);
+                            printf("\n");
+                        }
                     }
                 }
             }
         }
     }
+
+
+}
+int* base_moves(t_chance chance) {
+    //génére les enfants de la racine original avec les mouvements associés
+    int* moves = (int*)malloc(9*sizeof(int));
+    for (int i=0; i < 9 ;i++){
+        int total = chance.U_TURN + chance.T_RIGHT + chance.T_LEFT + chance.B_10 + chance.F_10 +chance.F_20 +chance.F_30;
+        int p = floor(((rand()%(101)))*((float)total/100));
+        printf("%d ",p);
+        moves[i] = num_move(p,&chance);
+        printf("%d & %d \n",total ,moves[i]);
+    }
+
+    return moves;
+}
+int verif_collision(t_localisation new_loc) {
+    //renvoie si le robot rentre en collision avec la limite du terrain
+    //en fonction de sa nouvelle localisation
+    if (new_loc.pos.x > 6 || new_loc.pos.x<0 || new_loc.pos.y > 6 || new_loc.pos.y <0) {
+        return 1;
+    }
+    return 0;
+
+
 }
