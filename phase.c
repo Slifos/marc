@@ -98,7 +98,7 @@ t_move move_num(int i){
     }
 }
 // Fonction pour créer un nœud
-Node* create_node(int value, int num_children) {
+Node* create_node(int value, int num_children,int isReg) {
 
     Node* node = (Node*)malloc(sizeof(Node));
 
@@ -108,7 +108,7 @@ Node* create_node(int value, int num_children) {
     }
     node->value = value;
     node->num_children = num_children;
-
+    node->isReg = isReg;
     // Allouer de la mémoire pour les enfants si le nœud a des enfants
     if (num_children > 4) {
 
@@ -145,20 +145,20 @@ void build_tree(Node* node, t_map map, t_localisation loc, int*moves,int reg) {
         if (collision){
 
 
-            if (map.costs[loc.pos.x][loc.pos.y]==4){
+            if (map.soils[loc.pos.x][loc.pos.y]==REG){
                 new_reg=1;
             }
             //printf("\ncollision1");
-            node->children[i] = create_node(node->value = map.costs[loc.pos.x][loc.pos.y], node->num_children - 1);
+            node->children[i] = create_node(node->value = map.costs[loc.pos.x][loc.pos.y], node->num_children - 1,new_reg);
             build_tree(node->children[i],map, loc, new_moves,new_reg);
         }
         else {
             //printf("\nbefore collision2");
-            if (map.costs[new_loc.pos.x][new_loc.pos.y]==4) {
+            if (map.soils[new_loc.pos.x][new_loc.pos.y]==REG) {
                 new_reg=1;
             }
 
-            node->children[i] = create_node(node->value = map.costs[new_loc.pos.x][new_loc.pos.y], node->num_children - 1);
+            node->children[i] = create_node(node->value = map.costs[new_loc.pos.x][new_loc.pos.y], node->num_children - 1,new_reg);
             //printf("\ncollision2");
             build_tree(node->children[i],map, new_loc, new_moves,new_reg);
 
@@ -182,7 +182,7 @@ void phase(t_localisation loc, t_chance chance, t_map map){
     int* moves = base_moves(chance);
 
 
-    Node *node = create_node(-1, 9);
+    Node *node = create_node(-1, 9,0);
     printf("\n node value : %d",node->value);
     build_tree(node,map,loc, moves,0);
     printf("\n node value : %d",node->value);
@@ -195,11 +195,13 @@ int* best_way(Node* node) {
     //pour trouver le meilleur chemin à parcourir
     int b,c,d,e,f,min = 100000;
     int* cheminfinal = malloc(5*sizeof(int));
+    
     for (b=0;b<9;b++){
         for (c=0;c<8;c++){
             for (d=0;d<7;d++){
                 for (e=0;e<6;e++){
-                    for (f=0;f<5;f++){
+                    if (node->children[b]->children[c]->children[d]->children[e]->isReg==0){
+                    for (f=0;f<5;f++) {
                         //printf("\n%d %d %d %d %d",node->children[b]->value,node->children[b]->children[c]->value,node->children[b]->children[c]->children[d]->value,node->children[b]->children[c]->children[d]->children[e]->value,node->children[b]->children[c]->children[d]->children[e]->children[f]->value);
                         if((node->children[b]->value + node->children[b]->children[c]->value + node->children[b]->children[c]->children[d]->value + node->children[b]->children[c]->children[d]->children[e]->value + node->children[b]->children[c]->children[d]->children[e]->children[f]->value)<min){
                             min = node->children[b]->value + node->children[b]->children[c]->value + node->children[b]->children[c]->children[d]->value + node->children[b]->children[c]->children[d]->children[e]->value + node->children[b]->children[c]->children[d]->children[e]->children[f]->value;
@@ -212,6 +214,21 @@ int* best_way(Node* node) {
                             cheminfinal[4] = f;
 
                             printf("\nChemin en prix : %d %d %d %d %d\n",node->children[b]->value,node->children[b]->children[c]->value,node->children[b]->children[c]->children[d]->value,node->children[b]->children[c]->children[d]->children[e]->value,node->children[b]->children[c]->children[d]->children[e]->children[f]->value);
+                            printf("\n");
+                        }
+                    }
+                    }else {
+                        if((node->children[b]->value + node->children[b]->children[c]->value + node->children[b]->children[c]->children[d]->value + node->children[b]->children[c]->children[d]->children[e]->value )<min){
+                            min = node->children[b]->value + node->children[b]->children[c]->value + node->children[b]->children[c]->children[d]->value + node->children[b]->children[c]->children[d]->children[e]->value ;
+                            printf("\nmin : %d", min);
+                            printf("\nchemin : %d %d %d %d ",b,c,d,e);
+                            cheminfinal[0] = b;
+                            cheminfinal[1] = c;
+                            cheminfinal[2] = d;
+                            cheminfinal[3] = e;
+
+
+                            printf("\nChemin en prix : %d %d %d %d \n",node->children[b]->value,node->children[b]->children[c]->value,node->children[b]->children[c]->children[d]->value,node->children[b]->children[c]->children[d]->children[e]->value);
                             printf("\n");
                         }
                     }
@@ -238,9 +255,10 @@ int* base_moves(t_chance chance) {
 int verif_collision(t_localisation new_loc) {
     //renvoie si le robot rentre en collision avec la limite du terrain
     //en fonction de sa nouvelle localisation
-    if (new_loc.pos.x > 6 || new_loc.pos.x<0 || new_loc.pos.y > 6 || new_loc.pos.y <0) {
+    if (new_loc.pos.x > 6 || new_loc.pos.x<0 || new_loc.pos.y > 7 || new_loc.pos.y<0) {
         return 1;
     }
+
     return 0;
 
 

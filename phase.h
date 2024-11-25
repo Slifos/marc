@@ -10,7 +10,8 @@
 typedef struct Node {
     int value;                // Valeur du nœud (facultatif)
     int num_children;         // Nombre d'enfants pour ce nœud
-    struct Node** children;   // Tableau de pointeurs vers les enfants
+    struct Node** children;
+    int isReg;// Tableau de pointeurs vers les enfants
 } Node;
 
 typedef struct s_chance{
@@ -26,7 +27,7 @@ typedef struct s_chance{
 
 int* getMoves(int *,int,int);
 t_move move_num(int );
-Node* create_node(int , int );
+Node* create_node(int , int ,int);
 void build_tree(Node* , t_map , t_localisation , int*,int);
 void phase(t_localisation , t_chance , t_map );
 int num_move (int , t_chance * );
